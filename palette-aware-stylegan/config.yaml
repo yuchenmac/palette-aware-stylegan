@@ -1,0 +1,146 @@
+project:
+  title: "Palette-aware StyleGAN: Craft-Informed Adversarial Synthesis of Jiangzhou Woodblock New Year Prints"
+
+image:
+  resolution: 512
+  channels: 3
+
+patch:
+  size: 512
+  stride: 256
+  source_split: [0.70, 0.15, 0.15]
+  min_greyscale_std: 0.02
+  min_mean_saturation: 0.05
+
+structural_prior:
+  tau_edge: 0.08
+  gamma: 0.02
+  line_threshold: 0.30
+  dilation_radius: 2
+  buffer_radius: 3
+  max_distance: 12
+  gaussian_sigma: 1.0
+  sobel_normalisation: 8.0
+
+palette:
+  k: 9
+  sensitivity_k: [7, 9, 11]
+  max_samples_per_patch: 50000
+  random_seed: 42
+  kmeans_max_iter: 50
+  kmeans_tolerance: 1.0e-5
+  numerical_epsilon: 1.0e-8
+
+generator:
+  latent_dim: 512
+  style_dim: 512
+  mapping_layers: 8
+  resolution: 512
+  channel_base: 32768
+  channel_max: 512
+  leaky_relu_slope: 0.2
+  demodulation_epsilon: 1.0e-8
+
+discriminator:
+  channel_base: 32768
+  channel_max: 512
+  head_channels: 512
+  head_features: 512
+  structural_fusion_weight: 0.75
+  leaky_relu_slope: 0.2
+
+palette_loss:
+  total_weight: 1.0
+  reconstruction_weight: 1.0
+  proportion_weight: 0.25
+  entropy_weight_start: 0.10
+  entropy_weight_end: 0.20
+  temperature_start: 0.25
+  temperature_end: 0.05
+  temperature_anneal_fraction: 0.60
+  total_weight_warmup_fraction: 0.20
+
+regularisation:
+  # Intermittent penalties join the main Adam update without interval scaling.
+  r1_appearance_weight: 10.0
+  r1_structural_weight: 6.0
+  r1_interval: 16
+  path_length_weight: 0.5
+  path_length_interval: 16
+  path_length_decay: 0.01
+
+training:
+  learning_rate_g: 1.5e-3
+  learning_rate_d: 1.5e-3
+  adam_betas: [0.0, 0.99]
+  batch_size: 8
+  gradient_accumulation: 2
+  total_steps: 200000
+  seed: 42
+  num_workers: 4
+  log_interval: 2000
+  # Loss-curve smoothing half-life in main steps; separate from generator EMA.
+  loss_ema_half_life_steps: 2000
+  validation_interval: 2000
+  checkpoint_interval: 2000
+  ema_half_life_kimg: 10.0
+
+ada:
+  enabled: true
+  target_hit_rate: 0.60
+  step_size: 0.05
+  initial_probability: 0.0
+  max_probability: 0.70
+  update_interval: 4
+  high_hit_rate: 0.80
+  low_hit_rate: 0.45
+  step_adjustment: 0.005
+  tightened_max_probability: 0.60
+  translate_fraction: 0.125
+  rotate_degrees: 15.0
+  scale_log2_std: 0.20
+  cutout_fraction: 0.25
+  brightness: 0.20
+  contrast: 0.50
+  saturation: 0.50
+  noise_std: 0.05
+  blur_sigma: 1.0
+
+freezed:
+  enabled: true
+  initially_frozen_resolutions: [512, 256]
+  monitor_window: 5
+  validation_improvement_epsilon: 1.0e-3
+  hit_rate_stability_tolerance: 0.02
+  consecutive_windows: 2
+  # Fixed metric identity; a missing/undefined metric skips its trigger.
+  validation_metric: fid
+
+adaptive_monitoring:
+  palette_kl_absolute_threshold: 0.03
+  minimum_relative_improvement: 0.05
+  palette_weight_increase: 0.15
+  annealing_advance: 0.10
+  gradient_ratio_low: 0.20
+  gradient_ratio_target_high: 0.50
+  gradient_ratio_reverse_threshold: 0.60
+  gradient_weight_adjustment: 0.10
+  gradient_consecutive_measurements: 2
+
+evaluation:
+  flatness_gradient_threshold: 0.04
+  evaluation_images_per_method: 1000
+  reference_images: 2400
+  kid_subset_size: 100
+  # Zero evaluates the full validation split.
+  validation_max_batches: 0
+
+ablation:
+  use_palette_aware: true
+  use_structural_branch: true
+  use_ada: true
+  use_freezed: true
+  use_reconstruction: true
+  use_proportion_alignment: true
+  use_entropy: true
+  fixed_temperature_when_entropy_disabled: true
